@@ -327,7 +327,7 @@ const blank=()=>({name:"",target:"",scores:Array(18).fill(null)});
 /* ---------- PLAY ---------- */
 function brand(inRound){
   return `<header class="brand"><h1><svg class="flagmark" viewBox="0 0 16 26" aria-hidden="true"><rect x="1" y="1" width="2" height="24" fill="var(--ink)"/><path d="M3 2 L15 6 L3 10Z" fill="var(--flag)"/></svg>${inRound?`${esc(course().name)}`:"Windyke Points Card"}</h1>
-  ${inRound?`<button class="iconbtn" id="menu">Round</button>`:""}</header>`;
+  ${inRound?`<button class="iconbtn" id="menu">Menu</button>`:""}</header>`;
 }
 function greenSvg(loc){
   const y={Front:78,Middle:52,Back:26}[loc];
@@ -488,7 +488,7 @@ function cellSheet(pi,k){
   <div class="row"><button class="btn grow" data-set="${pi}:${k}:x">Clear</button><button class="btn grow" id="close">Cancel</button></div>`);
 }
 function menuSheet(){
-  sheet(`<h2>Round</h2><span class="hint">${esc(course().club)} ${esc(course().name)} · Hole location ${S.pin} · ${S.players.length} player${S.players.length>1?"s":""}</span>
+  sheet(`<h2>Menu</h2><span class="hint">${esc(course().club)} ${esc(course().name)} · Hole location ${S.pin} · ${S.players.length} player${S.players.length>1?"s":""}</span>
   ${S.view!=="play"?`<button class="btn" id="m-back">Back to scoring</button>`:""}
   <button class="btn" id="m-scores">Fix scores (full card)</button>
   <button class="btn" id="m-targets">Edit targets</button>
