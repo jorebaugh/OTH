@@ -257,7 +257,7 @@ const KEY="windyke-points-v2", RKEY="windyke-roster";
 const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 
 const fresh=()=>({view:"setup",tab:"hole",courseId:"WindykeWest",pin:1,hole:0,turnSeen:false,
-  players:[{name:"Jesse Orebaugh",target:"13"}].map(p=>({...p,scores:Array(18).fill(null)}))});
+  players:[{name:"",target:""}].map(p=>({...p,scores:Array(18).fill(null)}))});
 let S=store.get(KEY)||fresh();
 let setupErr="", confirmReset=false;
 const save=()=>store.set(KEY,S);
