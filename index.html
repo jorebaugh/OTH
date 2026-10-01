@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#1d5a3a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="OTH Golf">
+<meta name="apple-mobile-web-app-title" content="OTH Scorecard">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -14,7 +14,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Windyke Points Card</title>
+<title>OTH Scorecard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
@@ -326,7 +326,7 @@ const blank=()=>({name:"",target:"",scores:Array(18).fill(null)});
 
 /* ---------- PLAY ---------- */
 function brand(inRound){
-  return `<header class="brand"><h1><svg class="flagmark" viewBox="0 0 16 26" aria-hidden="true"><rect x="1" y="1" width="2" height="24" fill="var(--ink)"/><path d="M3 2 L15 6 L3 10Z" fill="var(--flag)"/></svg>${inRound?`${esc(course().name)}`:"Windyke Points Card"}</h1>
+  return `<header class="brand"><h1><svg class="flagmark" viewBox="0 0 16 26" aria-hidden="true"><rect x="1" y="1" width="2" height="24" fill="var(--ink)"/><path d="M3 2 L15 6 L3 10Z" fill="var(--flag)"/></svg>${inRound?`${esc(course().name)}`:"OTH Scorecard"}</h1>
   ${inRound?`<button class="iconbtn" id="menu">Menu</button>`:""}</header>`;
 }
 function greenSvg(loc){

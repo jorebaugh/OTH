@@ -1,4 +1,4 @@
-# Windyke Points Card (OTH)
+# OTH Scorecard
 
 Stableford points scorecard for Windyke CC (West and East) with Golf Bunch targets.
 

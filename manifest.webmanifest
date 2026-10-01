@@ -1,6 +1,6 @@
 {
-  "name": "Windyke Points Card",
-  "short_name": "OTH Golf",
+  "name": "OTH Scorecard",
+  "short_name": "OTH Scorecard",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
