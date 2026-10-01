@@ -142,6 +142,13 @@ input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid
 .chipcard .cl .label{flex:1;font-size:11px}
 .chipcard .cl b{font-family:var(--display);font-size:26px;font-weight:700;line-height:1.05}
 .chipcard .cl .of{font-size:13px;color:var(--muted);font-weight:600}
+.chipcard .cl.dim{opacity:.6}
+.chipcard .cl.tot18{border-top:1px solid var(--line);margin-top:2px;padding-top:2px}
+.chipcard .cl b{font-size:22px}
+table.card small.of{color:var(--muted);font-weight:500;font-size:11px}
+.etgrid{display:grid;grid-template-columns:1fr 84px 44px 44px;gap:8px;align-items:center}
+.etgrid b{font-family:var(--display);font-size:22px;text-align:center}
+.etgrid input{padding:10px}
 /* Player correction sheet */
 .pgrid{display:flex;flex-direction:column;gap:4px}
 .pgrid>div{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
@@ -236,6 +243,8 @@ const fmt=n=>(Math.round(n*10)/10).toFixed(Number.isInteger(Math.round(n*10)/10)
 const signed=n=>(n>0?"+":n<0?"−":"±")+fmt(Math.abs(n));
 const cls=n=>n>0?"up":n<0?"down":"";
 const pc=i=>`var(${COLORS[i]})`;
+const tF=p=>p.target/2, tB=p=>p.target/2, tT=p=>p.target;
+const tSeg=(p,from,to)=>to-from===18?tT(p):from===0?tF(p):tB(p);
 const holeDone=i=>S.players.every(p=>p.scores[i]!==null);
 
 /* ---------- SETUP ---------- */
@@ -266,7 +275,7 @@ function renderSetup(){
     <div class="row"><span class="hint grow">Targets from the Golf Bunch list · ${TARGETS.source==="live"?"updated "+esc(TARGETS.date):"as of "+esc(TARGETS.date)}</span>
       <button class="btn small" id="refill">Refresh targets</button></div>
     ${roster.length&&S.players.length<5?`<div class="label">Recent players</div><div class="roster">${roster.map(r=>`<button data-roster="${esc(r.name)}" data-rt="${r.target}">${esc(r.name)} · ${r.target}</button>`).join("")}</div>`:""}
-    <span class="hint">Target is for 18 holes. Each nine counts half.</span>
+    <span class="hint">Target is for 18 holes. Front and back are each half.</span>
   </section>
   ${setupErr?`<div class="err" role="alert">${esc(setupErr)}</div>`:""}
   <button class="btn primary" id="start">Tee off</button>`;
@@ -304,11 +313,11 @@ function greenSvg(loc){
 }
 function renderPlay(){
   const i=S.hole, h=holeInfo(i), nine=i<9?0:9;
-  const teamT=S.players.reduce((t,p)=>t+p.target,0);
+  const teamT=S.players.reduce((t,p)=>t+tT(p),0),teamF=S.players.reduce((t,p)=>t+tF(p),0),teamB=S.players.reduce((t,p)=>t+tB(p),0);
   const teamNine=S.players.reduce((t,p)=>t+sum(p.scores,nine,nine+9),0);
   const teamTot=S.players.reduce((t,p)=>t+sum(p.scores),0);
   const holesPlayedTeam=S.players.reduce((t,p)=>t+played(p),0);
-  const paceT=S.players.reduce((t,p)=>t+p.target*played(p)/18,0);
+  
   const pct=Math.min(100,teamT?teamTot/teamT*100:0);
   $("#app").innerHTML=`
   ${brand(true)}
@@ -324,15 +333,15 @@ function renderPlay(){
   <section class="panel">
     ${S.players.map((p,pi)=>{return `<div class="player" style="--pc:${pc(pi)}">
       <div class="phead"><div class="pname"><i style="background:${pc(pi)}"></i><span>${esc(p.name)}</span></div>
-      <div class="pstat num">${nine?"In":"Out"} <b>${sum(p.scores,nine,nine+9)}</b>/${fmt(p.target/2)} · 18 <b>${sum(p.scores)}</b>/${fmt(p.target)}</div></div>
+      <div class="pstat num">F <b>${sum(p.scores,0,9)}</b>/${fmt(tF(p))} · B <b>${sum(p.scores,9,18)}</b>/${fmt(tB(p))} · 18 <b>${sum(p.scores)}</b>/${fmt(tT(p))}</div></div>
       <div class="pts">${PTS.map(([v,l])=>`<button data-score="${pi}:${v}" aria-pressed="${p.scores[i]===+v}" aria-label="${esc(p.name)} ${v} points"><b>${v}</b><small>${l}</small></button>`).join("")}</div>
     </div>`}).join("")}
   </section>`:renderGrid()}
   <section class="panel">
     <span class="label">Team</span>
     <div class="team num">
-      <div><span class="label">Front 9</span><b>${S.players.reduce((t,p)=>t+sum(p.scores,0,9),0)}</b><span class="hint">of ${fmt(teamT/2)}</span></div>
-      <div><span class="label">Back 9</span><b>${S.players.reduce((t,p)=>t+sum(p.scores,9,18),0)}</b><span class="hint">of ${fmt(teamT/2)}</span></div>
+      <div><span class="label">Front 9</span><b>${S.players.reduce((t,p)=>t+sum(p.scores,0,9),0)}</b><span class="hint">of ${fmt(teamF)}</span></div>
+      <div><span class="label">Back 9</span><b>${S.players.reduce((t,p)=>t+sum(p.scores,9,18),0)}</b><span class="hint">of ${fmt(teamB)}</span></div>
       <div><span class="label">18</span><b>${teamTot}</b><span class="hint">of ${fmt(teamT)}</span></div>
     </div>
     <div class="bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
@@ -346,19 +355,20 @@ function vs(s,t){return `<b>${s}</b><span class="of">/${fmt(t)}</span>`}
 function standings(){
   const back=S.hole>=9, from=back?9:0;
   return `<section class="stand" aria-label="Live standings">${S.players.map((p,pi)=>`
-    <button class="chipcard" data-pchip="${pi}" style="--pc:${pc(pi)}" aria-label="${esc(p.name)}: ${sum(p.scores)} of ${fmt(p.target)}, tap to review or fix">
+    <button class="chipcard" data-pchip="${pi}" style="--pc:${pc(pi)}" aria-label="${esc(p.name)}: ${sum(p.scores)} of ${fmt(tT(p))}, tap to review or fix">
       <span class="cn"><span>${esc(p.name)}</span></span>
-      <span class="cl num"><span class="label">${back?"Back":"Front"} 9</span>${vs(sum(p.scores,from,from+9),p.target/2)}</span>
-      <span class="cl num"><span class="label">18</span>${vs(sum(p.scores),p.target)}</span>
+      <span class="cl num ${back?"dim":""}"><span class="label">Front</span>${vs(sum(p.scores,0,9),tF(p))}</span>
+      <span class="cl num ${back?"":"dim"}"><span class="label">Back</span>${vs(sum(p.scores,9,18),tB(p))}</span>
+      <span class="cl num tot18"><span class="label">18</span>${vs(sum(p.scores),tT(p))}</span>
     </button>`).join("")}</section>`;
 }
 let psel=0;
 function playerSheet(pi,k=psel){
   psel=k; const p=S.players[pi], h=holeInfo(k);
   const cell=j=>`<button data-psel="${pi}:${j}" class="${j===k?"sel":""} ${p.scores[j]===null?"empty":""}"><small>${j+1}</small><b>${p.scores[j]??"·"}</b></button>`;
-  sheet(`<div class="row"><h2 class="grow" style="color:${pc(pi)}">${esc(p.name)}</h2><span class="pstat num">18 <b>${sum(p.scores)}</b>/${fmt(p.target)}</span></div>
-  <div class="pgrid num"><span class="label">Front 9 · ${sum(p.scores,0,9)}/${fmt(p.target/2)}</span><div>${[...Array(9).keys()].map(cell).join("")}</div>
-  <span class="label">Back 9 · ${sum(p.scores,9,18)}/${fmt(p.target/2)}</span><div>${[...Array(9).keys()].map(j=>cell(j+9)).join("")}</div></div>
+  sheet(`<div class="row"><h2 class="grow" style="color:${pc(pi)}">${esc(p.name)}</h2><span class="pstat num">18 <b>${sum(p.scores)}</b>/${fmt(tT(p))}</span></div>
+  <div class="pgrid num"><span class="label">Front 9 · ${sum(p.scores,0,9)}/${fmt(tF(p))}</span><div>${[...Array(9).keys()].map(cell).join("")}</div>
+  <span class="label">Back 9 · ${sum(p.scores,9,18)}/${fmt(tB(p))}</span><div>${[...Array(9).keys()].map(j=>cell(j+9)).join("")}</div></div>
   <span class="hint">Hole ${k+1} · Par ${h.par} · Hcp ${h.hcp} · ${h.loc} pin. Pick points, and it moves to the next hole.</span>
   <div class="pts" style="--pc:${pc(pi)}">${PTS.map(([v,l])=>`<button data-pset="${pi}:${v}" aria-pressed="${p.scores[k]===+v}"><b>${v}</b><small>${l}</small></button>`).join("")}</div>
   <div class="row"><button class="btn grow" data-pset="${pi}:x">Clear hole ${k+1}</button><button class="btn primary grow" id="close">Done</button></div>`);
@@ -401,10 +411,10 @@ function next(){
 
 /* ---------- SUMMARIES ---------- */
 function board(from,to,div){
-  const rows=S.players.map((p,pi)=>({p,pi,s:sum(p.scores,from,to),t:p.target/div})).map(r=>({...r,d:r.s-r.t})).sort((a,b)=>b.d-a.d);
+  const rows=S.players.map((p,pi)=>({p,pi,s:sum(p.scores,from,to),t:tSeg(p,from,to)})).map(r=>({...r,d:r.s-r.t})).sort((a,b)=>b.d-a.d);
   return `<div class="lb">${rows.map((r,k)=>`<div class="lbrow num"><span class="rank">${k+1}</span><span class="pname"><i style="background:${pc(r.pi)}"></i><span>${esc(r.p.name)}</span></span><span class="score">${r.s}</span><span class="tgt">quota ${fmt(r.t)}<br><span class="delta ${cls(r.d)}">${signed(r.d)}</span></span></div>`).join("")}</div>`;
 }
-function teamLine(from,to,div){const s=S.players.reduce((t,p)=>t+sum(p.scores,from,to),0),t=S.players.reduce((a,p)=>a+p.target,0)/div,d=s-t;return{s,t,d}}
+function teamLine(from,to,div){const s=S.players.reduce((t,p)=>t+sum(p.scores,from,to),0),t=S.players.reduce((a,p)=>a+tSeg(p,from,to),0),d=s-t;return{s,t,d}}
 function renderTurn(){
   const f=teamLine(0,9,2);
   $("#app").innerHTML=`${brand(true)}
@@ -427,7 +437,7 @@ function renderFinal(){
   <section class="panel"><span class="label">Leaderboard · vs quota</span>${board(0,18,1)}</section>
   <section class="panel"><span class="label">Front / back split</span>
    <div class="gridwrap"><table class="card"><thead><tr><th>Player</th><th>Out</th><th>In</th><th class="tot">Tot</th><th>+/−</th></tr></thead><tbody>
-   ${S.players.map((p,pi)=>{const d=sum(p.scores)-p.target;return `<tr><td style="color:${pc(pi)};font-weight:700">${esc(p.name)}</td><td>${sum(p.scores,0,9)}</td><td>${sum(p.scores,9,18)}</td><td class="tot">${sum(p.scores)}</td><td class="delta ${cls(d)}">${signed(d)}</td></tr>`}).join("")}
+   ${S.players.map((p,pi)=>{const d=sum(p.scores)-tT(p);return `<tr><td style="color:${pc(pi)};font-weight:700">${esc(p.name)}</td><td>${sum(p.scores,0,9)}<small class="of">/${fmt(tF(p))}</small></td><td>${sum(p.scores,9,18)}<small class="of">/${fmt(tB(p))}</small></td><td class="tot">${sum(p.scores)}<small class="of">/${fmt(tT(p))}</small></td><td class="delta ${cls(d)}">${signed(d)}</td></tr>`}).join("")}
    </tbody></table></div></section>
   <button class="btn primary" id="copy">Copy results</button>
   <button class="btn" id="edit">Fix a score</button>
@@ -437,7 +447,7 @@ function renderFinal(){
 function resultsText(){
   const fin=S.view==="final",to=fin?18:9,div=fin?1:2,T=teamLine(0,to,div);
   const lines=[`${course().club} ${course().name} · ${fin?"Final":"Front 9"}`,`Team: ${T.s} of ${fmt(T.t)} (${signed(T.d)})`,""];
-  S.players.map(p=>({p,s:sum(p.scores,0,to),d:sum(p.scores,0,to)-p.target/div})).sort((a,b)=>b.d-a.d).forEach(r=>lines.push(`${r.p.name}: ${r.s} (quota ${fmt(r.p.target/div)}, ${signed(r.d)})`));
+  S.players.map(p=>({p,s:sum(p.scores,0,to),d:sum(p.scores,0,to)-tSeg(p,0,to)})).sort((a,b)=>b.d-a.d).forEach(r=>lines.push(fin?`${r.p.name}: F ${sum(r.p.scores,0,9)}/${fmt(tF(r.p))}, B ${sum(r.p.scores,9,18)}/${fmt(tB(r.p))}, 18 ${r.s}/${fmt(tT(r.p))} (${signed(r.d)})`:`${r.p.name}: ${r.s}/${fmt(tF(r.p))} (${signed(r.d)})`));
   return lines.join("\n").replace(/−/g,"-").replace(/±/g,"+");
 }
 
@@ -470,6 +480,7 @@ document.addEventListener("input",e=>{
   const t=e.target;
   if(t.dataset.pn!==undefined){S.players[+t.dataset.pn].name=t.value;save()}
   if(t.dataset.pt!==undefined){S.players[+t.dataset.pt].target=t.value;save()}
+  if(t.dataset.et!==undefined){const k=t.dataset.et,v=+t.value||0;$(`#ef${k}`).textContent=fmt(v/2);$(`#eb${k}`).textContent=fmt(v/2)}
   if(t.id==="q"){q=t.value;const pos=t.selectionStart;render();const n=$("#q");if(n){n.focus();n.setSelectionRange(pos,pos)}}
 });
 document.addEventListener("change",e=>{const t=e.target;
@@ -506,13 +517,16 @@ document.addEventListener("click",async e=>{
   if(b.id==="close")return closeSheet();
   if(b.id==="m-back"){S.view="play";save();closeSheet();return render()}
   if(b.id==="m-scores"){S.view="play";S.tab="card";save();closeSheet();return render()}
-  if(b.id==="m-targets")return sheet(`<h2>Edit targets</h2><span class="hint">Fix a target if the list was off. Front and back 9 targets update to half of each.</span>
-    ${S.players.map((p,pi)=>`<div class="prow"><span class="swatch" style="background:${pc(pi)}"></span><label for="et${pi}" style="font-weight:700">${esc(p.name)}</label><input id="et${pi}" data-et="${pi}" type="number" inputmode="decimal" min="0" value="${p.target}" class="num"><span></span></div>`).join("")}
+  if(b.id==="m-targets")return sheet(`<h2>Edit targets</h2><span class="hint">Fix a player's 18-hole target. Front and back are each half.</span>
+    <div class="etgrid num"><span></span><span class="label">18</span><span class="label">Front</span><span class="label">Back</span>
+    ${S.players.map((p,pi)=>`<label for="et${pi}" style="font-weight:700;color:${pc(pi)}">${esc(p.name)}</label>
+      <input id="et${pi}" data-et="${pi}" type="number" inputmode="decimal" min="0" value="${p.target}">
+      <b id="ef${pi}">${fmt(tF(p))}</b><b id="eb${pi}">${fmt(tB(p))}</b>`).join("")}</div>
     <span class="err" id="eterr"></span>
     <div class="row"><button class="btn grow" id="close">Cancel</button><button class="btn primary grow" id="et-save">Save targets</button></div>`);
-  if(b.id==="et-save"){const vals=[...document.querySelectorAll("[data-et]")].map(i=>Number(i.value));
-    if(vals.some((v,k)=>document.querySelectorAll("[data-et]")[k].value===""||isNaN(v)||v<0)){$("#eterr").textContent="Every player needs a target of 0 or more.";return}
-    vals.forEach((v,k)=>S.players[k].target=v);save();closeSheet();render();return toast("Targets saved")}
+  if(b.id==="et-save"){const vals=S.players.map((p,pi)=>$(`#et${pi}`).value);
+    if(vals.some(v=>v===""||isNaN(+v)||+v<0)){$("#eterr").textContent="Every player needs a target of 0 or more.";return}
+    vals.forEach((v,k)=>S.players[k].target=+v);save();closeSheet();render();return toast("Targets saved")}
   if(b.id==="m-turn"){S.view="turn";save();closeSheet();return render()}
   if(b.id==="m-wake"){closeSheet();return keepAwake()}
   if(b.id==="m-theme"){const r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches;r.dataset.theme=dark?"light":"dark";store.set("windyke-theme",r.dataset.theme);return closeSheet()}
