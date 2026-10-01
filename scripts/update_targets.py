@@ -31,14 +31,23 @@ def parse(html):
 
 if __name__=="__main__":
     src = sys.argv[1] if len(sys.argv)>1 else None
-    if src: html=open(src,encoding="utf-8",errors="replace").read()
-    else:
-        req=urllib.request.Request(URL,headers={"User-Agent":"Mozilla/5.0 scorecard-updater"})
-        html=urllib.request.urlopen(req,timeout=30).read().decode("windows-1252",errors="replace")
+    def status(msg):
+        open("targets-status.txt","w").write(f"{datetime.now(timezone.utc).isoformat(timespec='minutes')}  {msg}\n")
+        print(msg)
+    try:
+        if src: html=open(src,encoding="utf-8",errors="replace").read()
+        else:
+            req=urllib.request.Request(URL,headers={"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15","Accept":"text/html,*/*"})
+            with urllib.request.urlopen(req,timeout=30) as r:
+                raw=r.read(); code=r.status
+            html=raw.decode("windows-1252",errors="replace")
+    except Exception as e:
+        status(f"FETCH FAILED: {type(e).__name__}: {e}"); sys.exit(1)
     players=parse(html)
-    if len(players)<5: sys.exit(f"Only found {len(players)} players; sheet layout may have changed. Keeping old targets.json.")
+    if len(players)<5:
+        status(f"PARSE FAILED: found {len(players)} players in {len(html)} chars. Start: {html[:300]!r}"); sys.exit(1)
     try: old=json.load(open("targets.json"))
     except Exception: old={}
-    if old.get("list")==players: print("No change"); sys.exit(0)
+    if old.get("list")==players: status(f"OK: {len(players)} players, no change"); sys.exit(0)
     json.dump({"updated":datetime.now(timezone.utc).isoformat(timespec="minutes"),"source":URL,"list":players},open("targets.json","w"),indent=1)
-    print(f"Wrote {len(players)} players")
+    status(f"OK: wrote {len(players)} players")
