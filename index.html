@@ -186,6 +186,31 @@ table.card td button.gsel{background:var(--pc);color:#fff;outline:2px solid var(
 .scrim{position:fixed;inset:0;background:rgb(0 0 0 / .45);display:flex;align-items:flex-end;justify-content:center;z-index:10}
 .sheet{background:var(--card);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 .toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;z-index:20}
+/* Notch-safe sides (landscape phones) */
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.nav{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* Short landscape screens: unpin the standings, compact the pad and bar, use the width */
+@media (orientation:landscape) and (max-height:520px){
+  .wrap{max-width:960px;padding-block:8px 90px;gap:10px}
+  .nav .in{max-width:960px}
+  .nav{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .nav .btn{padding:8px 14px}
+  .brand h1{font-size:22px}
+  .stand{position:static;margin:0;padding:0;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .chipcard{padding:6px 10px}
+  .chipcard .cl b{font-size:18px}
+  .panel{padding:10px 12px;gap:8px}
+  body[data-tab="card"] .stand{display:none}
+  body[data-tab="card"] .wrap{max-width:none;padding-right:calc(300px + 28px + env(safe-area-inset-right,0px))}
+  body[data-tab="card"] .gpad{position:fixed;z-index:6;right:max(12px,env(safe-area-inset-right,0px));top:calc(8px + env(safe-area-inset-top,0px));bottom:calc(60px + env(safe-area-inset-bottom,0px));width:300px;overflow:auto;box-shadow:none;justify-content:center}
+  body[data-tab="card"] .gpad .pts{grid-template-columns:repeat(3,1fr)}
+  body[data-tab="card"] .gpad .pts button{min-height:46px}
+  body[data-tab="card"] .gpad>.hint{display:none}
+  .gridwrap{margin-inline:0;padding-inline:0}
+  table.card td button{width:34px;height:30px}
+  .hole .big{font-size:48px}
+  .green{width:70px;height:80px}
+}
 @media (prefers-reduced-motion:no-preference){.pts button{transition:background .12s}.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
 </style>
 
@@ -351,7 +376,7 @@ function renderPlay(){
   $("#nav").innerHTML=`<div class="in">
     <div class="tabs" role="tablist"><button role="tab" data-tab="hole" aria-selected="${S.tab==="hole"}">Hole</button><button role="tab" data-tab="card" aria-selected="${S.tab==="card"}">Card</button></div>
     <button class="btn small" id="prev" ${i===0?"disabled":""} aria-label="Previous hole">◀</button>
-    <button class="btn primary" id="next">${i===8&&holeDone(8)?"Make the turn":i===17?"Finish round":"Next hole ▶"}</button></div>`;
+    <button class="btn primary" id="next">${i===8?"Make the turn":i===17?"Finish round":"Next hole ▶"}</button></div>`;
 }
 function vs(s,t){return `<b>${s}</b><span class="of">/${fmt(t)}</span>`}
 function standings(){
@@ -405,7 +430,7 @@ function gset(v){S.players[gsel.pi].scores[gsel.k]=v==="x"?null:+v;if(v!=="x")gm
 function setScore(pi,hole,v){S.players[pi].scores[hole]=S.players[pi].scores[hole]===v&&S.tab==="hole"?null:v;save();render()}
 function next(){
   const i=S.hole;
-  if(!holeDone(i)){const miss=S.players.filter(p=>p.scores[i]===null).map(p=>p.name);return toast(`Enter points for ${miss.join(", ")}`)}
+  if(!holeDone(i)&&i!==17){const miss=S.players.filter(p=>p.scores[i]===null).map(p=>p.name);toast(`Hole ${i+1} skipped for ${miss.join(", ")}`)}
   if(i===8&&!S.turnSeen){S.turnSeen=true;S.hole=9;S.view="turn";save();return render()}
   if(i===17){const first=[...Array(18).keys()].find(k=>!holeDone(k));if(first!==undefined){S.hole=first;save();render();return toast(`Hole ${first+1} still needs scores`)}S.view="final";save();return render()}
   S.hole=i+1;save();render();scrollTo({top:0});
@@ -548,6 +573,7 @@ function render(){
   document.querySelectorAll(".gridwrap").forEach((g,i)=>{if(sl[i])g.scrollLeft=sl[i]});
 }
 function draw(){
+  document.body.dataset.tab=S.view==="play"?S.tab:S.view;
   if(S.view!=="setup"&&!course())S=fresh();
   if(S.view==="setup"){renderSetup();$("#nav").innerHTML=""}
   else if(S.view==="turn")renderTurn();
