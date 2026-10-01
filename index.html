@@ -91,6 +91,9 @@ input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid
 .dots button.cur{background:var(--pine);color:var(--pine-ink)}
 .dots .gap{grid-column:span 1}
 
+.holenav{display:flex;align-items:center;gap:10px}
+.arrow{width:48px;height:48px;border-radius:12px;background:var(--chip);font-size:20px;flex:none}
+.arrow:disabled{opacity:.3;cursor:not-allowed}
 /* Player scoring rows */
 .player{display:flex;flex-direction:column;gap:8px;padding-block:12px;border-top:1px solid var(--line)}
 .player:first-of-type{border-top:0;padding-top:0}
@@ -325,10 +328,9 @@ function renderPlay(){
   ${S.tab==="hole"?`
   <section class="panel">
     <div class="hole"><div>
-      <div class="big num">${i+1}<span> / 18</span></div>
+      <div class="holenav"><button class="arrow" data-step="-1" ${i===0?"disabled":""} aria-label="Previous hole">◀</button><div class="big num">${i+1}<span> / 18</span></div><button class="arrow" data-step="1" ${i===17?"disabled":""} aria-label="Next hole">▶</button></div>
       <div class="facts"><div><span class="label">Par</span><b>${h.par}</b></div><div><span class="label">Hcp</span><b>${h.hcp}</b></div><div><span class="label">Pin</span><b>${h.loc}</b></div></div>
     </div>${greenSvg(h.loc)}</div>
-    <div class="dots" role="tablist" aria-label="Jump to hole">${Array.from({length:18},(_,k)=>`<button data-go="${k}" class="${k===i?"cur":holeDone(k)?"done":""}" aria-label="Hole ${k+1}">${k+1}</button>`).join("")}</div>
   </section>
   <section class="panel">
     ${S.players.map((p,pi)=>{return `<div class="player" style="--pc:${pc(pi)}">
@@ -497,7 +499,7 @@ document.addEventListener("click",async e=>{
   if(b.id==="refill"){b.textContent="Checking…";await loadTargets();let n=0;S.players.forEach(p=>{const m=findTarget(p.name);if(m&&m[1]!==null&&String(p.target)!==String(m[1])){p.target=String(m[1]);n++}});save();render();return toast(n?`Updated ${n} target${n>1?"s":""}`:"Targets are up to date")}
   if(b.id==="start")return startRound();
   if(d.score){const[pi,v]=d.score.split(":").map(Number);return setScore(pi,S.hole,v)}
-  if(d.go!==undefined){S.hole=+d.go;save();return render()}
+  if(d.step){S.hole=Math.min(17,Math.max(0,S.hole+ +d.step));save();return render()}
   if(d.tab){S.tab=d.tab;save();return render()}
   if(d.cell){const[pi,k]=d.cell.split(":").map(Number);gsel={pi,k};return render()}
   if(d.gset)return gset(d.gset);
