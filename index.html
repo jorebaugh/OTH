@@ -249,7 +249,15 @@ async function loadTargets(){
   if(S.view==="setup")render();
 }
 const findTarget=name=>{const n=name.trim().toLowerCase();return TARGETS.list.find(([m])=>m.toLowerCase()===n)};
-let q="";
+let q="", sugRow=-1;
+function suggest(i,typed){
+  const t=typed.trim().toLowerCase(); if(!t)return "";
+  const taken=S.players.filter((_,k)=>k!==i).map(p=>p.name.toLowerCase());
+  const hits=TARGETS.list.filter(([n])=>n.toLowerCase().split(/\s+/).some(w=>w.startsWith(t))||n.toLowerCase().startsWith(t)||n.toLowerCase().includes(t))
+    .filter(([n])=>!taken.includes(n.toLowerCase())&&n.toLowerCase()!==t).slice(0,6);
+  if(!hits.length)return "";
+  return `<div class="results" role="listbox">${hits.map(([n,tg])=>`<button data-fill="${i}" data-name="${esc(n)}" data-t="${tg??""}"><span>${esc(n)}</span><b class="num">${tg??"qualifying"}</b></button>`).join("")}</div>`;
+}
 const LOC={F:"Front",M:"Middle",B:"Back"};
 const PTS=[["0","Dbl+"],["1","Bogey"],["2","Par"],["3","Birdie"],["4","Eagle"],["5","Alb"]];
 const COLORS=["--p1","--p2","--p3","--p4","--p5"];
@@ -294,16 +302,13 @@ function renderSetup(){
     ${S.players.map((p,i)=>`<div class="prow"><span class="swatch" style="background:${pc(i)}"></span>
       <input id="pn${i}" data-pn="${i}" placeholder="Player name" value="${esc(p.name)}" autocomplete="off">
       <input id="pt${i}" data-pt="${i}" type="number" inputmode="numeric" min="0" max="90" placeholder="pts" value="${esc(p.target)}" class="num">
-      <button class="xbtn" data-rm="${i}" aria-label="Remove ${esc(p.name||"player")}">✕</button></div>`).join("")}
-    ${S.players.length<5?`<div class="finder">
-      <input id="q" type="search" placeholder="Find a player on the Golf Bunch list" value="${esc(q)}" autocomplete="off">
-      ${q.trim()?`<div class="results">${TARGETS.list.filter(([n])=>n.toLowerCase().includes(q.trim().toLowerCase())&&!S.players.some(p=>p.name.toLowerCase()===n.toLowerCase())).slice(0,8).map(([n,t])=>`<button data-pick="${esc(n)}" data-pt2="${t??""}"><span>${esc(n)}</span><b class="num">${t??"qualifying"}</b></button>`).join("")||`<span class="hint">No one on the list matches “${esc(q)}”. Add them below.</span>`}</div>`:""}
-      </div>
-      <button class="btn" id="add">Add player not on the list</button>`:""}
+      <button class="xbtn" data-rm="${i}" aria-label="Remove ${esc(p.name||"player")}">✕</button></div>
+      ${sugRow===i?suggest(i,p.name):""}`).join("")}
+    ${S.players.length<5?`<button class="btn" id="add">Add player</button>`:""}
     <div class="row"><span class="hint grow">Targets from the Golf Bunch list · ${TARGETS.source==="live"?"updated "+esc(TARGETS.date):"as of "+esc(TARGETS.date)}</span>
       <button class="btn small" id="refill">Refresh targets</button></div>
     ${roster.length&&S.players.length<5?`<div class="label">Recent players</div><div class="roster">${roster.map(r=>`<button data-roster="${esc(r.name)}" data-rt="${r.target}">${esc(r.name)} · ${r.target}</button>`).join("")}</div>`:""}
-    <span class="hint">Target is for 18 holes. Front and back are each half.</span>
+    <span class="hint">Start typing a name to pick from the Golf Bunch list. Target is for 18 holes; front and back are each half.</span>
   </section>
   ${setupErr?`<div class="err" role="alert">${esc(setupErr)}</div>`:""}
   <button class="btn primary" id="start">Tee off</button>`;
@@ -510,7 +515,7 @@ document.addEventListener("visibilitychange",()=>{if(wake&&document.visibilitySt
 /* ---------- EVENTS ---------- */
 document.addEventListener("input",e=>{
   const t=e.target;
-  if(t.dataset.pn!==undefined){S.players[+t.dataset.pn].name=t.value;save()}
+  if(t.dataset.pn!==undefined){const i=+t.dataset.pn;S.players[i].name=t.value;save();sugRow=i;const pos=t.selectionStart;render();const n=$(`#pn${i}`);if(n){n.focus();n.setSelectionRange(pos,pos)}}
   if(t.dataset.pt!==undefined){S.players[+t.dataset.pt].target=t.value;save()}
   if(t.dataset.et!==undefined){const k=t.dataset.et,v=+t.value||0;$(`#ef${k}`).textContent=fmt(v/2);$(`#eb${k}`).textContent=fmt(v/2)}
   if(t.id==="q"){q=t.value;const pos=t.selectionStart;render();const n=$("#q");if(n){n.focus();n.setSelectionRange(pos,pos)}}
@@ -525,6 +530,7 @@ document.addEventListener("click",async e=>{
   if(d.rm!==undefined){S.players.splice(+d.rm,1);if(!S.players.length)S.players.push(blank());save();return render()}
   if(b.id==="add"){S.players.push(blank());save();render();return $(`#pn${S.players.length-1}`).focus()}
   if(d.roster){const empty=S.players.findIndex(p=>!p.name.trim()&&p.target==="");const np={...blank(),name:d.roster,target:d.rt};empty>=0?S.players[empty]=np:S.players.push(np);save();return render()}
+  if(d.fill!==undefined){const i=+d.fill,p=S.players[i];p.name=d.name;p.target=d.t;sugRow=-1;save();render();if(d.t==="")toast(`${d.name} is still qualifying. Enter a target.`);else{const nx=$("#add");if(nx)nx.focus()}return}
   if(d.pick){const empty=S.players.findIndex(p=>!p.name.trim()&&p.target==="");const np={...blank(),name:d.pick,target:d.pt2};empty>=0?S.players[empty]=np:S.players.push(np);q="";save();render();const n=$("#q");if(n)n.focus();if(d.pt2==="")toast(`${d.pick} is still qualifying. Enter a target.`);return}
   if(b.id==="refill"){closeSheet();toast("Checking targets…");await loadTargets();let n=0;S.players.forEach(p=>{const m=findTarget(p.name);if(m&&m[1]!==null&&String(p.target)!==String(m[1])){p.target=String(m[1]);n++}});save();render();return toast(n?`Updated ${n} target${n>1?"s":""}`:"Targets are up to date")}
   if(b.id==="start")return startRound();
