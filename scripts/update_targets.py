@@ -24,8 +24,11 @@ def parse(html):
     for c in p.rows:
         if len(c)<3 or "," not in c[0]: continue
         last, first = [s.strip() for s in c[0].split(",",1)]
-        try: t=float(c[2]); t=int(t) if t.is_integer() else t
-        except ValueError: t=None
+        if not first or re.search(r"\d", c[0]): continue          # skip date/heading rows
+        if any("qualif" in x.lower() for x in c[1:4]): t=None      # still qualifying: no target yet
+        else:
+            try: t=float(c[2]); t=int(t) if t.is_integer() else t
+            except ValueError: t=None
         out.append([f"{first} {last}".strip(), t])
     return out
 
