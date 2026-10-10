@@ -251,10 +251,10 @@ async function loadTargets(){
 }
 function targetsNote(){
   if(!TARGETS.at)return "Using the built-in list from Sep 30. Tap Refresh targets.";
-  // Reads run at 0000, 0500, 0600 and 0700. After 8 AM there should be a read from this morning;
-  // before 8 AM, one from around midnight.
-  const now=new Date(), h=now.getHours(), cut=new Date(now);
-  if(h>=8)cut.setHours(4,0,0,0); else {cut.setHours(0,0,0,0);cut.setTime(cut-36e5)}
+  // Reads run every 30 minutes from 0400 to 0700. After 7:30 AM there should be a read from this morning;
+  // earlier than that, one from yesterday morning.
+  const now=new Date(), cut=new Date(now); cut.setHours(3,30,0,0);
+  if(now.getHours()*60+now.getMinutes()<450)cut.setDate(cut.getDate()-1);
   const stale=TARGETS.at<cut.getTime();
   return `<span>Sheet updated <b>${TARGETS.mod?stamp(TARGETS.mod):"unknown"}</b></span> · <span>read <b>${stamp(TARGETS.at)}</b>${stale?' <em class="stale">· may be out of date</em>':""}</span>`;
 }
