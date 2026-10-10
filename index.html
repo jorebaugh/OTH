@@ -258,7 +258,16 @@ function targetsNote(){
   const stale=TARGETS.at<cut.getTime();
   return `<span>Sheet updated <b>${TARGETS.mod?stamp(TARGETS.mod):"unknown"}</b></span> · <span>read <b>${stamp(TARGETS.at)}</b>${stale?' <em class="stale">· may be out of date</em>':""}</span>`;
 }
-const findTarget=name=>{const n=name.trim().toLowerCase();return TARGETS.list.find(([m])=>m.toLowerCase()===n)};
+// Matches "Charlie W." to "Charlie W.", and older full names like "Charlie Wilder" to "Charlie W."
+function sameName(typed,listed){
+  const t=typed.trim().toLowerCase().replace(/\s+/g," "), l=listed.toLowerCase();
+  if(t===l)return true;
+  const m=l.match(/^(.*) ([^ ]+)\.$/); if(!m)return false;
+  const [ ,first,pre]=m; if(!t.startsWith(first+" "))return false;
+  const last=t.slice(first.length+1).replace(/\.$/,"");
+  return last.length>=pre.length&&last.startsWith(pre);
+}
+const findTarget=name=>{const hits=TARGETS.list.filter(([m])=>sameName(name,m));return hits.length===1?hits[0]:hits.find(([m])=>m.toLowerCase()===name.trim().toLowerCase())};
 let q="", sugRow=-1;
 function suggest(i,typed){
   const t=typed.trim().toLowerCase(); if(!t)return "";
@@ -539,10 +548,10 @@ document.addEventListener("click",async e=>{
   if(d.pin){S.pin=+d.pin;save();return render()}
   if(d.rm!==undefined){S.players.splice(+d.rm,1);if(!S.players.length)S.players.push(blank());save();return render()}
   if(b.id==="add"){S.players.push(blank());save();render();return $(`#pn${S.players.length-1}`).focus()}
-  if(d.roster){const empty=S.players.findIndex(p=>!p.name.trim()&&p.target==="");const np={...blank(),name:d.roster,target:d.rt};empty>=0?S.players[empty]=np:S.players.push(np);save();return render()}
+  if(d.roster){const empty=S.players.findIndex(p=>!p.name.trim()&&p.target==="");const cur=findTarget(d.roster);const np={...blank(),name:cur?cur[0]:d.roster,target:cur&&cur[1]!==null?String(cur[1]):d.rt};empty>=0?S.players[empty]=np:S.players.push(np);save();return render()}
   if(d.fill!==undefined){const i=+d.fill,p=S.players[i];p.name=d.name;p.target=d.t;sugRow=-1;save();render();if(d.t==="")toast(`${d.name} is still qualifying. Enter a target.`);else{const nx=$("#add");if(nx)nx.focus()}return}
   if(d.pick){const empty=S.players.findIndex(p=>!p.name.trim()&&p.target==="");const np={...blank(),name:d.pick,target:d.pt2};empty>=0?S.players[empty]=np:S.players.push(np);q="";save();render();const n=$("#q");if(n)n.focus();if(d.pt2==="")toast(`${d.pick} is still qualifying. Enter a target.`);return}
-  if(b.id==="refill"){closeSheet();toast("Checking targets…");const src=await loadTargets();let n=0;S.players.forEach(p=>{const m=findTarget(p.name);if(m&&m[1]!==null&&String(p.target)!==String(m[1])){p.target=String(m[1]);n++}});save();render();const from=src==="copy"?`from the ${stamp(TARGETS.at)} copy`:"(offline, using saved list)";return toast(n?`Updated ${n} target${n>1?"s":""} ${from}`:`Targets match ${from}`)}
+  if(b.id==="refill"){closeSheet();toast("Checking targets…");const src=await loadTargets();let n=0;S.players.forEach(p=>{const m=findTarget(p.name);if(m){if(p.name!==m[0])p.name=m[0];if(m[1]!==null&&String(p.target)!==String(m[1])){p.target=String(m[1]);n++}}});save();render();const from=src==="copy"?`from the ${stamp(TARGETS.at)} copy`:"(offline, using saved list)";return toast(n?`Updated ${n} target${n>1?"s":""} ${from}`:`Targets match ${from}`)}
   if(b.id==="start")return startRound();
   if(d.score){const[pi,v]=d.score.split(":").map(Number);return setScore(pi,S.hole,v)}
   if(d.step){S.hole=Math.min(17,Math.max(0,S.hole+ +d.step));save();return render()}
