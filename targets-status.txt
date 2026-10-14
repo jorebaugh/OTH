@@ -1,1 +1,1 @@
-2026-10-13T19:13+00:00  OK: wrote 36 players
+2026-10-14T14:38+00:00  PARSE FAILED: found 0 players in 205 chars. Start: '<html><head><link rel="icon" href="data:;"><meta http-equiv="refresh" content="0;/.well-known/sgcaptcha/?r=%2FGolfBunchTargets_files%2Fsheet001.htm&y=ipc:4.236.173.162:1791988554.220"></meta></head></html>'
