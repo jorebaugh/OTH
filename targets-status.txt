@@ -1,1 +1,1 @@
-2026-10-17T15:38+00:00  PARSE FAILED: found 0 players in 207 chars. Start: '<html><head><link rel="icon" href="data:;"><meta http-equiv="refresh" content="0;/.well-known/sgcaptcha/?r=%2FGolfBunchTargets_files%2Fsheet001.htm&y=ipc:172.215.217.241:1792251312.622"></meta></head></html>'
+2026-10-18T13:22+00:00  PARSE FAILED: found 0 players in 205 chars. Start: '<html><head><link rel="icon" href="data:;"><meta http-equiv="refresh" content="0;/.well-known/sgcaptcha/?r=%2FGolfBunchTargets_files%2Fsheet001.htm&y=ipc:158.23.190.67:1792329544.856"></meta></head></html>'
